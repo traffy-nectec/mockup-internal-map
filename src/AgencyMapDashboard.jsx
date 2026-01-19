@@ -143,7 +143,9 @@ export default function AgencyMapDashboard() {
 
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
-  const markersRef = useRef([]);
+  
+  // Changed: Use LayerGroup instead of array of layers
+  const layerGroupRef = useRef(null);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -214,6 +216,7 @@ export default function AgencyMapDashboard() {
 
     points.forEach((point, i) => {
         if (processed.has(i)) return;
+        if (!point.lat || !point.lng) return; // Safety check
         
         // Leaflet method to get pixel point relative to container
         const p1 = map.latLngToLayerPoint([point.lat, point.lng]);
@@ -238,11 +241,15 @@ export default function AgencyMapDashboard() {
     return clusters;
   };
 
+  // --- Map Rendering Logic (Using LayerGroup) ---
   useEffect(() => {
-    if (!mapInstanceRef.current || !window.L || !isMapReady) return;
+    if (!mapInstanceRef.current || !window.L || !isMapReady || !layerGroupRef.current) return;
+    
     const map = mapInstanceRef.current;
-    markersRef.current.forEach(layer => map.removeLayer(layer));
-    markersRef.current = [];
+    const layerGroup = layerGroupRef.current;
+    
+    // Clear all existing layers safely
+    layerGroup.clearLayers();
 
     if (viewMode === 'marker') {
       filteredCases.forEach(c => {
@@ -256,11 +263,10 @@ export default function AgencyMapDashboard() {
             </div></div>`,
           iconSize: [32, 32], iconAnchor: [16, 30], popupAnchor: [0, -32]
         });
-        const marker = window.L.marker([c.lat, c.lng], { icon }).addTo(map).on('click', () => handleMarkerClick(c));
-        markersRef.current.push(marker);
+        const marker = window.L.marker([c.lat, c.lng], { icon }).on('click', () => handleMarkerClick(c));
+        layerGroup.addLayer(marker);
       });
     } else if (viewMode === 'heatmap') {
-      // Heatmap logic same as before (simplified for density)
       filteredCases.forEach(c => {
         let densityCount = 0;
         const radius = 0.008; 
@@ -270,10 +276,11 @@ export default function AgencyMapDashboard() {
         });
         const density = Math.min(densityCount / 20, 1);
         const color = getHeatColor(density);
+        // Using circleMarker within LayerGroup
         const circle = window.L.circleMarker([c.lat, c.lng], {
           radius: 12 + (density * 10), fillColor: color, color: color, weight: 0, opacity: 0, fillOpacity: 0.4
-        }).addTo(map);
-        markersRef.current.push(circle);
+        });
+        layerGroup.addLayer(circle);
       });
     } else if (viewMode === 'cluster') {
         const clusters = getZoomAwareClusters(filteredCases, map);
@@ -289,14 +296,14 @@ export default function AgencyMapDashboard() {
                 html: `<div class="${className} rounded-full text-white flex items-center justify-center shadow-lg border-2 border-white bg-opacity-90 hover:scale-110 transition-transform" style="width:${size}px; height:${size}px; font-weight:bold; font-size:${size/2.5}px;">${cluster.count}</div>`,
                 iconSize: [size, size], iconAnchor: [size/2, size/2]
             });
-            const marker = window.L.marker([cluster.lat, cluster.lng], { icon }).addTo(map).on('click', () => {
+            const marker = window.L.marker([cluster.lat, cluster.lng], { icon }).on('click', () => {
                 if (cluster.count === 1) handleMarkerClick(cluster.ids[0]);
                 else map.setView([cluster.lat, cluster.lng], map.getZoom() + 2); // Zoom in on click
             });
-            markersRef.current.push(marker);
+            layerGroup.addLayer(marker);
         });
     }
-  }, [filteredCases, viewMode, isMapReady, mapZoom]); // Added mapZoom dependency to re-cluster
+  }, [filteredCases, viewMode, isMapReady, mapZoom]); // Update when data/view changes
 
   const initMap = () => {
     if (mapInstanceRef.current) return;
@@ -305,7 +312,10 @@ export default function AgencyMapDashboard() {
     window.L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap' }).addTo(map);
     window.L.control.zoom({ position: 'bottomright' }).addTo(map);
     
-    // Add Event Listener for Zoom
+    // Initialize LayerGroup and add to map ONCE
+    const layerGroup = window.L.layerGroup().addTo(map);
+    layerGroupRef.current = layerGroup;
+
     map.on('zoomend', () => {
         setMapZoom(map.getZoom());
     });
