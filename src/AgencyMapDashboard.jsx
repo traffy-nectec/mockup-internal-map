@@ -653,7 +653,7 @@ export default function AgencyMapDashboard() {
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
           className={`
-            hidden md:flex 
+            flex 
             absolute top-1/2 z-50 transition-all duration-300
             bg-white shadow-md border border-l-0 p-1 rounded-r-lg hover:bg-gray-50 w-8 h-12 items-center justify-center
           `}
