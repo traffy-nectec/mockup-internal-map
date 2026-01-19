@@ -255,15 +255,28 @@ export default function AgencyMapDashboard() {
       filteredCases.forEach(c => {
         const config = STATUS_GROUPS[c.statusGroup];
         const svgContent = getCategoryIconSVG(c.categories[0]);
+        const isSelected = selectedCase?.id === c.id;
+
+        // Custom Indicator Logic: Add ring and scale if selected
+        const activeClass = isSelected 
+            ? 'ring-4 ring-blue-500 ring-offset-2 scale-125 z-50' 
+            : 'hover:scale-110';
+
         const icon = window.L.divIcon({
           className: 'custom-pin',
-          html: `<div class="relative flex items-center justify-center w-full h-full transform transition-transform hover:scale-110">
+          html: `<div class="relative flex items-center justify-center w-full h-full transform transition-all duration-300 ${activeClass}">
             <div class="${config.color} w-8 h-8 rounded-full border-2 border-white shadow-md flex items-center justify-center text-white">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svgContent}</svg>
             </div></div>`,
           iconSize: [32, 32], iconAnchor: [16, 30], popupAnchor: [0, -32]
         });
-        const marker = window.L.marker([c.lat, c.lng], { icon }).on('click', () => handleMarkerClick(c));
+        
+        // Set higher zIndexOffset for selected marker to keep it on top
+        const marker = window.L.marker([c.lat, c.lng], { 
+            icon,
+            zIndexOffset: isSelected ? 1000 : 0 
+        }).on('click', () => handleMarkerClick(c));
+        
         layerGroup.addLayer(marker);
       });
     } else if (viewMode === 'heatmap') {
@@ -303,14 +316,16 @@ export default function AgencyMapDashboard() {
             layerGroup.addLayer(marker);
         });
     }
-  }, [filteredCases, viewMode, isMapReady, mapZoom]); // Update when data/view changes
+  }, [filteredCases, viewMode, isMapReady, mapZoom, selectedCase]); // Added selectedCase dependency to re-render markers on selection
 
   const initMap = () => {
     if (mapInstanceRef.current) return;
     const defaultZoom = window.innerWidth < 768 ? 11 : 12;
     const map = window.L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], defaultZoom);
     window.L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap' }).addTo(map);
-    window.L.control.zoom({ position: 'bottomright' }).addTo(map);
+    
+    // Changed Zoom Control Position to Top-Right to avoid mobile address bar
+    window.L.control.zoom({ position: 'topright' }).addTo(map);
     
     // Initialize LayerGroup and add to map ONCE
     const layerGroup = window.L.layerGroup().addTo(map);
@@ -669,7 +684,7 @@ export default function AgencyMapDashboard() {
         <div className="flex-1 relative h-full w-full bg-gray-100">
            <div id="map" className="w-full h-full z-0 outline-none"></div>
 
-           <div className="absolute top-5 right-5 z-[400] bg-white rounded-lg shadow-xl border border-gray-100 p-1.5 flex flex-col gap-1">
+           <div className="absolute top-20 right-4 z-[400] bg-white rounded-lg shadow-xl border border-gray-100 p-1.5 flex flex-col gap-1">
               <button onClick={() => setViewMode('marker')} className={`p-2.5 rounded-md transition-colors ${viewMode === 'marker' ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-50'}`} title="Marker"><MapIcon size={20} /></button>
               <button onClick={() => setViewMode('cluster')} className={`p-2.5 rounded-md transition-colors ${viewMode === 'cluster' ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-50'}`} title="Cluster"><Layers size={20} /></button>
               <button onClick={() => setViewMode('heatmap')} className={`p-2.5 rounded-md transition-colors ${viewMode === 'heatmap' ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-50'}`} title="Heatmap"><Crosshair size={20} /></button>
