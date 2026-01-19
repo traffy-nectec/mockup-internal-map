@@ -326,8 +326,32 @@ export default function AgencyMapDashboard() {
 
   const handleMarkerClick = (c) => {
     setSelectedCase(c);
-    if (isMobile) setIsSidebarOpen(false);
-    mapInstanceRef.current.flyTo([c.lat, c.lng], 16, { animate: true });
+    
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    let targetLat = c.lat;
+    let targetLng = c.lng;
+    const targetZoom = 16;
+
+    // ตรวจสอบว่าเป็นมือถือหรือไม่ในขณะที่คลิก (เพื่อใช้ข้อมูลล่าสุด)
+    const isMobileView = window.innerWidth < 768;
+
+    if (isMobileView) {
+        setIsSidebarOpen(false);
+        // Calculate Offset: Shift map center "down" to show marker "up"
+        // 1. Project lat/lng to pixel
+        const point = map.project([c.lat, c.lng], targetZoom);
+        // 2. Add Y (pixels) to shift center down. 
+        // 180px is approx height of half popup or enough to clear it
+        point.y += 180; 
+        // 3. Unproject back to lat/lng
+        const newCenter = map.unproject(point, targetZoom);
+        targetLat = newCenter.lat;
+        targetLng = newCenter.lng;
+    }
+
+    map.flyTo([targetLat, targetLng], targetZoom, { animate: true });
   };
 
   const handleListClick = (c) => {
