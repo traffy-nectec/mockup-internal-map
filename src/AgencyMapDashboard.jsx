@@ -404,13 +404,22 @@ export default function AgencyMapDashboard() {
         {/* --- Sidebar --- */}
         <div 
             className={`
-                flex flex-col h-full bg-white shadow-2xl z-20 transition-transform duration-300 w-full md:w-96 border-r
+                flex flex-col h-full bg-white shadow-2xl z-[500] transition-transform duration-300 w-full md:w-96 border-r
                 absolute inset-y-0 left-0 md:relative 
                 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:hidden'}
             `}
         >
           {/* 1. Sticky Header & Search */}
           <div className="p-4 border-b bg-white z-10 sticky top-0 shadow-sm space-y-3">
+            
+            {/* Mobile Header: Close Button */}
+            <div className="flex justify-between items-center md:hidden mb-2">
+                <h2 className="font-bold text-lg text-gray-800">ตัวกรอง & รายการ</h2>
+                <button onClick={() => setIsSidebarOpen(false)} className="p-2 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200">
+                    <X size={20} />
+                </button>
+            </div>
+
             <div className="relative group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500" size={18} />
               <input 
@@ -620,8 +629,9 @@ export default function AgencyMapDashboard() {
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
           className={`
+            hidden md:flex 
             absolute top-1/2 z-50 transition-all duration-300
-            bg-white shadow-md border border-l-0 p-1 rounded-r-lg hover:bg-gray-50 w-8 h-12 flex items-center justify-center
+            bg-white shadow-md border border-l-0 p-1 rounded-r-lg hover:bg-gray-50 w-8 h-12 items-center justify-center
           `}
           style={{ 
               left: isSidebarOpen && !isMobile ? '24rem' : '0', // 24rem = w-96
