@@ -115,9 +115,12 @@ export default function AgencyMapDashboard() {
   
   const getIdsForGroup = (group) => USER_DEFINED_STATUSES.filter(s => s.group === group).map(s => s.id);
   const getAllStatusIds = () => USER_DEFINED_STATUSES.map(s => s.id);
+  
+  // New Helper: Get Default Statuses (Excluding Irrelevant)
+  const getDefaultStatusIds = () => USER_DEFINED_STATUSES.filter(s => s.group !== 'irrelevant').map(s => s.id);
 
   // Init Filters (Temp States)
-  const [tempStatusIds, setTempStatusIds] = useState(getAllStatusIds());
+  const [tempStatusIds, setTempStatusIds] = useState(getDefaultStatusIds());
   const [tempRating, setTempRating] = useState([1, 2, 3, 4, 5, 0]); 
   const [tempSearchTerm, setTempSearchTerm] = useState('');
   const [tempCategories, setTempCategories] = useState(CATEGORIES);
@@ -125,7 +128,7 @@ export default function AgencyMapDashboard() {
   // Applied Filters (Real States)
   const [appliedFilters, setAppliedFilters] = useState({
     searchTerm: '',
-    statusIds: getAllStatusIds(),
+    statusIds: getDefaultStatusIds(),
     categories: CATEGORIES,
     rating: [1, 2, 3, 4, 5, 0]
   });
@@ -409,12 +412,12 @@ export default function AgencyMapDashboard() {
   };
   const handleResetFilters = () => {
     setTempSearchTerm('');
-    setTempStatusIds(getAllStatusIds());
+    setTempStatusIds(getDefaultStatusIds());
     setTempCategories(CATEGORIES);
     setTempRating([1, 2, 3, 4, 5, 0]);
     setAppliedFilters({
       searchTerm: '',
-      statusIds: getAllStatusIds(),
+      statusIds: getDefaultStatusIds(),
       categories: CATEGORIES,
       rating: [1, 2, 3, 4, 5, 0]
     });
@@ -679,7 +682,7 @@ export default function AgencyMapDashboard() {
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
           className={`
-            hidden md:flex 
+            flex 
             absolute top-1/2 z-[1001] transition-all duration-300
             bg-white shadow-md border border-l-0 p-1 rounded-r-lg hover:bg-gray-50 w-8 h-12 items-center justify-center
           `}
