@@ -1,6 +1,7 @@
 # CitySense Dashboard Mockup
 
 **CitySense Dashboard** คือ Mockup เว็บแอปพลิเคชันสำหรับแสดงผลข้อมูลการแจ้งเหตุร้องเรียนของหน่วยงานในเมือง (เช่น สำนักการระบายน้ำ, จราจร) บนแผนที่แบบ Interactive โดยเน้นการใช้งานที่ง่าย รวดเร็ว และรองรับการแสดงผลบนมือถือ (**Mobile-First Design**)
+https://gemini.google.com/app/4add27e5cb367f02
 
 ---
 
