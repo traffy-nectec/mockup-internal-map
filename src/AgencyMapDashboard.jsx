@@ -116,12 +116,13 @@ export default function AgencyMapDashboard() {
   const getIdsForGroup = (group) => USER_DEFINED_STATUSES.filter(s => s.group === group).map(s => s.id);
   const getAllStatusIds = () => USER_DEFINED_STATUSES.map(s => s.id);
 
-  // Init Filters
+  // Init Filters (Temp States)
   const [tempStatusIds, setTempStatusIds] = useState(getAllStatusIds());
-  const [tempRating, setTempRating] = useState([1, 2, 3, 4, 5, 0]); // Default all ratings including 0 (N/A)
+  const [tempRating, setTempRating] = useState([1, 2, 3, 4, 5, 0]); 
   const [tempSearchTerm, setTempSearchTerm] = useState('');
   const [tempCategories, setTempCategories] = useState(CATEGORIES);
 
+  // Applied Filters (Real States)
   const [appliedFilters, setAppliedFilters] = useState({
     searchTerm: '',
     statusIds: getAllStatusIds(),
@@ -134,6 +135,16 @@ export default function AgencyMapDashboard() {
   const [expandedStatusGroup, setExpandedStatusGroup] = useState(null);
   const [isFiltersVisible, setIsFiltersVisible] = useState(false); // Start Hidden
   
+  // Dirty State Check
+  const isFilterDirty = React.useMemo(() => {
+    return (
+        tempSearchTerm !== appliedFilters.searchTerm ||
+        JSON.stringify(tempStatusIds.sort()) !== JSON.stringify(appliedFilters.statusIds.sort()) ||
+        JSON.stringify(tempCategories.sort()) !== JSON.stringify(appliedFilters.categories.sort()) ||
+        JSON.stringify(tempRating.sort()) !== JSON.stringify(appliedFilters.rating.sort())
+    );
+  }, [tempSearchTerm, tempStatusIds, tempCategories, tempRating, appliedFilters]);
+
   const [viewMode, setViewMode] = useState('marker');
   const [selectedCase, setSelectedCase] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -316,7 +327,7 @@ export default function AgencyMapDashboard() {
             layerGroup.addLayer(marker);
         });
     }
-  }, [filteredCases, viewMode, isMapReady, mapZoom, selectedCase]); // Added selectedCase dependency to re-render markers on selection
+  }, [filteredCases, viewMode, isMapReady, mapZoom, selectedCase]); 
 
   const initMap = () => {
     if (mapInstanceRef.current) return;
@@ -324,10 +335,8 @@ export default function AgencyMapDashboard() {
     const map = window.L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], defaultZoom);
     window.L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap' }).addTo(map);
     
-    // Changed Zoom Control Position to Top-Right to avoid mobile address bar
     window.L.control.zoom({ position: 'topright' }).addTo(map);
     
-    // Initialize LayerGroup and add to map ONCE
     const layerGroup = window.L.layerGroup().addTo(map);
     layerGroupRef.current = layerGroup;
 
@@ -349,18 +358,12 @@ export default function AgencyMapDashboard() {
     let targetLng = c.lng;
     const targetZoom = 16;
 
-    // ตรวจสอบว่าเป็นมือถือหรือไม่ในขณะที่คลิก (เพื่อใช้ข้อมูลล่าสุด)
     const isMobileView = window.innerWidth < 768;
 
     if (isMobileView) {
         setIsSidebarOpen(false);
-        // Calculate Offset: Shift map center "down" to show marker "up"
-        // 1. Project lat/lng to pixel
         const point = map.project([c.lat, c.lng], targetZoom);
-        // 2. Add Y (pixels) to shift center down. 
-        // 180px is approx height of half popup or enough to clear it
         point.y += 180; 
-        // 3. Unproject back to lat/lng
         const newCenter = map.unproject(point, targetZoom);
         targetLat = newCenter.lat;
         targetLng = newCenter.lng;
@@ -421,8 +424,8 @@ export default function AgencyMapDashboard() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-100 font-sans text-gray-800 overflow-hidden">
-      {/* --- Header --- */}
-      <header className="bg-white shadow-md z-30 px-4 py-4 flex items-center justify-between border-b shrink-0">
+      {/* --- Header (Z-Index increased to 1100) --- */}
+      <header className="bg-white shadow-md z-[1100] px-4 py-4 flex items-center justify-between border-b shrink-0 relative">
         <div className="flex items-center gap-3">
           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 -ml-2 rounded-full hover:bg-gray-100 md:hidden">
             <List size={24} />
@@ -440,10 +443,10 @@ export default function AgencyMapDashboard() {
 
       <div className="flex flex-1 overflow-hidden relative">
         
-        {/* --- Sidebar --- */}
+        {/* --- Sidebar (Z-Index increased to 1000) --- */}
         <div 
             className={`
-                flex flex-col h-full bg-white shadow-2xl z-[500] transition-transform duration-300 w-full md:w-96 border-r
+                flex flex-col h-full bg-white shadow-2xl z-[1000] transition-transform duration-300 w-full md:w-96 border-r
                 absolute inset-y-0 left-0 md:relative 
                 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:hidden'}
             `}
@@ -451,7 +454,6 @@ export default function AgencyMapDashboard() {
           {/* 1. Sticky Header & Search */}
           <div className="p-4 border-b bg-white z-10 sticky top-0 shadow-sm space-y-3">
             
-            {/* Mobile Header: Close Button */}
             <div className="flex justify-between items-center md:hidden mb-2">
                 <h2 className="font-bold text-lg text-gray-800">ตัวกรอง & รายการ</h2>
                 <button onClick={() => setIsSidebarOpen(false)} className="p-2 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200">
@@ -484,8 +486,17 @@ export default function AgencyMapDashboard() {
                 <button onClick={handleResetFilters} className="px-3 py-2 bg-white border border-gray-300 text-gray-600 rounded-lg hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors" title="รีเซ็ต">
                     <RotateCcw size={18}/>
                 </button>
-                <button onClick={handleApplyFilters} className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 active:scale-95 transition-all font-bold flex items-center gap-1">
-                    <Search size={16}/> ค้นหา
+                <button 
+                    onClick={handleApplyFilters} 
+                    className={`
+                        px-4 py-2 text-white rounded-lg shadow-md active:scale-95 transition-all font-bold flex items-center gap-1
+                        ${isFilterDirty 
+                            ? 'bg-orange-500 hover:bg-orange-600 ring-2 ring-orange-200 animate-pulse' // Dirty State
+                            : 'bg-blue-600 hover:bg-blue-700'
+                        }
+                    `}
+                >
+                    <Search size={16}/> {isFilterDirty ? 'ยืนยัน' : 'ค้นหา'}
                 </button>
             </div>
           </div>
@@ -668,8 +679,8 @@ export default function AgencyMapDashboard() {
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
           className={`
-            flex 
-            absolute top-1/2 z-50 transition-all duration-300
+            hidden md:flex 
+            absolute top-1/2 z-[1001] transition-all duration-300
             bg-white shadow-md border border-l-0 p-1 rounded-r-lg hover:bg-gray-50 w-8 h-12 items-center justify-center
           `}
           style={{ 
@@ -681,7 +692,7 @@ export default function AgencyMapDashboard() {
 
 
         {/* --- Map Container & Popup --- */}
-        <div className="flex-1 relative h-full w-full bg-gray-100">
+        <div className="flex-1 relative h-full w-full bg-gray-100 z-0">
            <div id="map" className="w-full h-full z-0 outline-none"></div>
 
            <div className="absolute top-20 right-4 z-[400] bg-white rounded-lg shadow-xl border border-gray-100 p-1.5 flex flex-col gap-1">
